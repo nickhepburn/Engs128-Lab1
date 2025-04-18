@@ -93,7 +93,7 @@ dut : top_level_dds
         ac_mute_n_o => mute_n,
         ac_dac_data_o => data_out,
         ac_dac_lrclk_o => open,
-        ac_adc_data_i => data_in,
+        ac_adc_data_i => data_out,
         ac_adc_lrclk_o => lrclk);
 
 ----------------------------------------------------------------------------   

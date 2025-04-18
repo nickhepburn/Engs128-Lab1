@@ -22,7 +22,7 @@ entity i2s_receiver is
 		lrclk_i   : in std_logic;
 		
 		-- Data
-		adc_serial_data_o     : in std_logic;
+		adc_serial_data_i     : in std_logic;
 		left_audio_data_o     : out std_logic_vector(AC_DATA_WIDTH-1 downto 0) := (others => '0');
 		right_audio_data_o    : out std_logic_vector(AC_DATA_WIDTH-1 downto 0) := (others => '0')
 		);  
@@ -63,18 +63,16 @@ end component;
 ----------------------------------------------------------------------------
 begin
 
-shift_reg_data_o <= left_audio_data_o when (lrclk_i  = '0') else 
-                     right_audio_data_o;
-
 shift_reg_load_en <= load_en_l when (lrclk_i = '0') else 
                      load_en_r;
+                     
 ----------------------------------------------------------------------------
 -- Port-map sub-components, and describe the entity behavior
 ----------------------------------------------------------------------------
 shift_reg_inst : SIPO_shift_register
     port map (
         clk_i => bclk_i,
-        data_i => adc_serial_data_o,
+        data_i => adc_serial_data_i,
         load_en_i => shift_reg_load_en,
         shift_en_i => shift_en,
         data_o => shift_reg_data_o);
@@ -137,7 +135,8 @@ begin
         case curr_state is 
         
             when IdleStateR => 
-           
+                counter_reset <= '1';
+                
             when ShiftDataR => 
                 shift_en <= '1';
             
@@ -145,7 +144,8 @@ begin
                 load_en_r <= '1';
                 counter_reset <= '1';
                 
-            when IdleStateL => 
+            when IdleStateL =>
+                counter_reset <= '1'; 
             
             when ShiftDataL => 
                 shift_en <= '1';
@@ -166,5 +166,17 @@ begin
                 curr_state <= next_state;
         end if;
 end process state_update;
+
+audio_out : process (bclk_i)
+begin
+        if (rising_edge(bclk_i)) then
+                if(curr_state = IdleStateR) then
+                    left_audio_data_o <= shift_reg_data_o;
+                elsif(curr_state = IdleStateL) then
+                    right_audio_data_o <= shift_reg_data_o;
+                end if;
+        end if;
+end process audio_out;
+
 ---------------------------------------------------------------------------- 
 end Behavioral;
